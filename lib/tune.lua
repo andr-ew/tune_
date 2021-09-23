@@ -13,6 +13,7 @@ local function pgeg(par)
     return params:get('tune_'..par..tune.id)
 end
 
+--TODO: remove id shiz
 tune.params = function(id)
     id = id and ('_'..id) or ''
     tune.id = id
@@ -48,6 +49,7 @@ end
 tune.note_lookup = function()
 end
 
+--TODO: use arguments interval, octave, preset - remove these from params function. in shared context, these will be unique per instance, so it's better not to create params here
 tune.note = function(add, rem)
     local k = add or rem
     local id = k.y * k.x
