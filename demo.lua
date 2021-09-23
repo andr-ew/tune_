@@ -2,19 +2,20 @@ include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
 
-tune = include 'tune/lib/tune'
+local tune = include 'tune/lib/tune'
 tune.params()
 
 n = nest_ {
     keyboard = _grid.momentary {
         x = { 1, 8 }, y = { 1, 8 },
         action = function(s, v, t, d, add, rem)
-            tune.note_grid(add, rem)
+            tune.note(add, rem)
         end
     },
+    --TODO: octave marker _grid.fill at y = 8
     scale_preset = _grid.number {
         x = { 9, 16 }, y = 1,
-    } :param('tune_scale_preset'),
+    } :param('tune_preset'),
     scale = _grid.number {
         x = function() return { 9, 9 + math.min(8, #tune.intervals) - 1 } end,
         y = 2, wrap = 8,
