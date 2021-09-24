@@ -2,11 +2,11 @@ include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
 
-local tune = include 'tune/lib/tune'
+tune = include 'tune/lib/tune'
 
 tune.setup()
 
-params:add_separator('tuning'..id)
+params:add_separator('tuning')
 tune.params()
 
 params:add {
