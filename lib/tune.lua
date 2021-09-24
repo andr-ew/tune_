@@ -17,9 +17,6 @@ tune.setup = function(arg)
     return tune
 end
 
-tune.note_lookup = function()
-end
-
 tune.hz = function(deg, oct, pre)
     local iv = {}
     local oct = oct + deg//(#iv+1)

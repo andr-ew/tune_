@@ -69,7 +69,6 @@ n = nest_ {
 
 m = midi.connect()
 m.event = function(data)
-    tune.note_midi(midi.to_msg(data))
 end
 
 params:add_separator()
