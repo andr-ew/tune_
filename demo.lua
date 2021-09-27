@@ -2,9 +2,9 @@ include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
 
-tune = include 'tune/lib/tune'
+tune, tune_ = include 'tune/lib/tune'
 
-tune.setup()
+tune.setup { presets = 8, config = 'tune/lib/data/scales.lua' }
 
 params:add_separator('tuning')
 tune.params()
@@ -48,13 +48,11 @@ n = nest_ {
     scale_preset = _grid.number {
         x = { 9, 16 }, y = 1,
     } :param('scale_preset'),
-    scale = _grid.number {
-        x = function() return { 9, 9 + math.min(8, #tune.intervals) - 1 } end,
-        y = 2, wrap = 8,
-    } :param('tune_scale'),
-    intervals = tune.intervals_ {
-        left = 9, top = 4,
-    },
+    tune = tune_ {
+        left = 9, top = 2,
+    } :each(function(i, v) 
+        v.enabled = function() return i == params:get('scale_preset') end
+    end),
     transpose = _grid.number {
         x = { 9, 16 },
         y = 7,

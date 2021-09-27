@@ -1,3 +1,3 @@
-# tune
+# tune\_
 
-norns/grid/nest\_ diatonic tuning tools
+a diatonic tuning nest\_ brood
