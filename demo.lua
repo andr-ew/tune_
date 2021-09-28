@@ -2,9 +2,7 @@ include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
 
-tune, tune_ = include 'tune/lib/tune'
-
-tune.setup { presets = 8, config = 'tune/lib/data/scales.lua' }
+tune, tune_ = include 'tune/lib/tune' { presets = 8, config = 'tune/lib/data/scales.lua' }
 
 params:add_separator('tuning')
 tune.params()
@@ -39,7 +37,7 @@ n = nest_ {
                 engine.start(id, hz)
                 if midi then m:note_on(midi, vel or 1, 1) end
             elseif rem then
-                engine.stop(hz) 
+                engine.stop(id) 
                 if midi then m:note_off(midi, vel or 1, 1) end
             end
         end
@@ -64,6 +62,8 @@ n = nest_ {
         y = 8
     } :param('octave')
 } :connect { g = grid.connect() }
+
+--TODO: screen interface - print scale in western notes if west
 
 m = midi.connect()
 m.event = function(data)

@@ -7,6 +7,7 @@ tonics = {
     5, --d
     8, --f
     10, --g
+    3, --c
 }
 
 intervals = { 
