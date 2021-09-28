@@ -43,7 +43,14 @@ end
 
 --TODO: mute based on interval toggles
 local function intervals(pre)
-    return tune.intervals[math.min(params:get('tune_intervals_'..pre), #tune.intervals)]
+    local all = tune.intervals[math.min(params:get('tune_intervals_'..pre), #tune.intervals)]
+    local some = {}
+    for i,v in ipairs(all) do
+        if params:get('tune_intervals_'..pre..'_enable_'..i) > 0 then 
+            table.insert(some, v)
+        end
+    end
+    return some
 end
 local function tonic(pre)
     return tune.tonics[math.min(params:get('tune_tonic_'..pre), #tune.tonics)]
@@ -89,9 +96,6 @@ return function(arg)
         f = loadfile(norns.state.lib..'data/scales.lua')
         f()
     end
-
-    print('iv')
-    tab.print(tune.intervals)
 
     return 
     tune,
