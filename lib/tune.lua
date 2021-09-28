@@ -41,7 +41,6 @@ tune.params = function()
     return tune
 end
 
---TODO: mute based on interval toggles
 local function intervals(pre)
     local all = tune.intervals[math.min(params:get('tune_intervals_'..pre), #tune.intervals)]
     local some = {}
