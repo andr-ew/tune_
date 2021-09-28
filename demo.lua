@@ -2,22 +2,27 @@ include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
 
-tune, tune_ = include 'tune/lib/tune' { presets = 8, config = 'tune/lib/data/scales.lua' }
+tune, tune_ = include 'tune_/lib/tune' { presets = 8, config = 'tune_/lib/data/scales.lua' }
 
 params:add_separator('tuning')
 tune.params()
 
+local function clear()
+    n.keyboard:clear()
+    engine.stopAll()
+end
+
 params:add {
     type='number', name='scale preset', id='scale_preset', min = 1, max = 8,
-    default = 1,
+    default = 1, action = clear
 }
 params:add {
     type='number', name='transpose', id='transpose', min = 0, max = 7,
-    default = 1,
+    default = 1, action = clear
 }
 params:add {
     type='number', name='octave', id='octave', min = -1, max = 6,
-    default = 0
+    default = 0, action = clear
 }
 
 n = nest_ {
@@ -25,11 +30,12 @@ n = nest_ {
         x = { 1, 8 }, y = { 1, 8 },
         action = function(s, v, t, d, add, rem)
             local k = add or rem
-            local id = k.y * k.x
+            -- local id = k.y * k.x
             local deg = k.x + params:get('transpose')
             local oct = k.y-3 + params:get('octave')
             local pre = params:get('scale_preset')
 
+            local id = deg * oct
             local hz = tune.hz(deg, oct, pre)
             local midi = tune.midi(deg, oct, pre)
 

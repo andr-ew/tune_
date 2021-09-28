@@ -37,6 +37,7 @@ tune.params = function()
             }
         end
     end
+    --TODO: fileselect param for config ?
 
     return tune
 end
@@ -84,13 +85,15 @@ return function(arg)
         redraw = function()
             screen.clear()
             screen.move(64, 32)
-            screen.text_center('scales.lua error :(')
+            screen.text_center('config file error :(')
             screen.move(64, 32+10)
             screen.text_center('check maiden REPL')
             screen.update()
         end
         redraw()
-        print('---------------- SCALES.LUA ERROR -----------------------')
+        print('---------------- CONFIG FILE ERROR -----------------------')
+        print('FILE PATH: '..arg.config) --TODO: use loaded path
+        print('ERROR MESSAGE: ')
         print(err)
         f = loadfile(norns.state.lib..'data/scales.lua')
         f()
