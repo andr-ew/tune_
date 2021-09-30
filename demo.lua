@@ -8,34 +8,42 @@ params:add_separator('tuning')
 tune.params()
 
 local function clear()
-    n.keyboard:clear()
+    --n.keyboard:clear()
     engine.stopAll()
 end
 
 params:add {
     type='number', name='scale preset', id='scale_preset', min = 1, max = 8,
-    default = 1, action = clear
+    default = 1,
 }
 params:add {
     type='number', name='transpose', id='transpose', min = 0, max = 7,
-    default = 1, action = clear
+    default = 0,
 }
 params:add {
-    type='number', name='octave', id='octave', min = -1, max = 6,
-    default = 0, action = clear
+    type='number', name='octave', id='octave', min = -3, max = 4,
+    default = 0,
+}
+params:add {
+    type='option', id='voicing', options={ 'poly', 'mono' },
+    action = clear,
 }
 
 n = nest_ {
+    voicing = _grid.toggle {
+        x = 1, y = 1, lvl = { 4, 15 },
+    } :param('voicing'), 
     keyboard = _grid.momentary {
-        x = { 1, 8 }, y = { 1, 8 },
+        x = { 1, 8 }, y = { 2, 8 },
         action = function(s, v, t, d, add, rem)
             local k = add or rem
             -- local id = k.y * k.x
             local deg = k.x + params:get('transpose')
-            local oct = k.y-3 + params:get('octave')
+            local oct = k.y-5 + params:get('octave')
             local pre = params:get('scale_preset')
 
-            local id = deg * oct
+            local id = params:get('voicing') == 2  and 0 or k.x + (k.y * 16)
+            --deg + (oct * 16)
             local hz = tune.hz(deg, oct, pre)
             local midi = tune.midi(deg, oct, pre)
 

@@ -58,7 +58,7 @@ end
 
 tune.hz = function(deg, oct, pre)
     local iv = intervals(pre)
-    local oct = oct + deg//(#iv+1)
+    local oct = oct + (deg-1)//#iv + 1
     local deg = (deg - 1)%#iv + 1
 
     --TODO just intonnation
