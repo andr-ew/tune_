@@ -13,9 +13,15 @@ local function clear()
 end
 
 params:add {
+    type='option', id='voicing', options={ 'poly', 'mono' },
+    action = clear,
+}
+
+params:add {
     type='number', name='scale preset', id='scale_preset', min = 1, max = 8,
     default = 1,
 }
+--TODO: make these preset level
 params:add {
     type='number', name='transpose', id='transpose', min = 0, max = 7,
     default = 0,
@@ -24,28 +30,25 @@ params:add {
     type='number', name='octave', id='octave', min = -3, max = 4,
     default = 0,
 }
-params:add {
-    type='option', id='voicing', options={ 'poly', 'mono' },
-    action = clear,
-}
 
 n = nest_ {
     voicing = _grid.toggle {
         x = 1, y = 1, lvl = { 4, 15 },
     } :param('voicing'), 
+    --TODO: octave markers (lvl function)
     keyboard = _grid.momentary {
         x = { 1, 8 }, y = { 2, 8 },
+        lvl = function(s, x, y)
+            return tune.is_tonic(x, y, params:get('scale_preset')) and { 4, 15 } or { 0, 15 }
+        end,
         action = function(s, v, t, d, add, rem)
             local k = add or rem
-            -- local id = k.y * k.x
-            local deg = k.x + params:get('transpose')
-            local oct = k.y-5 + params:get('octave')
-            local pre = params:get('scale_preset')
-
             local id = params:get('voicing') == 2  and 0 or k.x + (k.y * 16)
-            --deg + (oct * 16)
-            local hz = tune.hz(deg, oct, pre)
-            local midi = tune.midi(deg, oct, pre)
+
+            local trans, oct, pre = params:get('transpose'), params:get('octave'), params:get('scale_preset')
+
+            local hz = tune.hz(k.x, k.y, trans, oct, pre)
+            local midi = tune.midi(k.x, k.y, trans, oct, pre)
 
             if add then
                 engine.start(id, hz)
@@ -56,7 +59,6 @@ n = nest_ {
             end
         end
     },
-    --TODO: octave marker _grid.fill at y = 8
     scale_preset = _grid.number {
         x = { 9, 16 }, y = 1,
     } :param('scale_preset'),
@@ -69,8 +71,6 @@ n = nest_ {
         x = { 9, 16 },
         y = 7,
     } :param('transpose'),
-
-    --TODO: _grid.number.redraw bug when min < 1
     octave = _grid.number {
         x = { 9, 16 },
         y = 8
@@ -78,10 +78,6 @@ n = nest_ {
 } :connect { g = grid.connect() }
 
 --TODO: screen interface - print scale in western notes if west
-
-m = midi.connect()
-m.event = function(data)
-end
 
 params:add_separator()
 engine.name = 'PolySub'
