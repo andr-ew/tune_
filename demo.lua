@@ -35,7 +35,6 @@ n = nest_ {
     voicing = _grid.toggle {
         x = 1, y = 1, lvl = { 4, 15 },
     } :param('voicing'), 
-    --TODO: octave markers (lvl function)
     keyboard = _grid.momentary {
         x = { 1, 8 }, y = { 2, 8 },
         lvl = function(s, x, y)

@@ -92,9 +92,6 @@ local function west(rooted)
     and tune.tones==12 
 end
 
--- local left = function(s) return s.parent and s.parent.p_.left or 1 end
--- local top = function(s) return s.parent and s.parent.p_.top or 1 end
-
 return function(arg)
     tune.presets = arg.presets or tune.presets
     
