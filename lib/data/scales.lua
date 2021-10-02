@@ -10,7 +10,7 @@ tonics = {
     3, --c
 }
 
-intervals = { 
-    { 0, 3, 5, 7, 10, }, --pent maj
-    { 0, 2, 4, 5, 7, 9, 11, } --maj
+scales = { 
+    { 0, 3, 5, 7, 10, name = 'pent maj', },
+    { 0, 2, 4, 5, 7, 9, 11, name = 'maj', },
 }

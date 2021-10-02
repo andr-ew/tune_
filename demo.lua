@@ -1,6 +1,7 @@
 include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
+include 'nest_/lib/nest/txt'
 
 tune, tune_ = include 'tune_/lib/tune' { presets = 8, config = 'tune_/lib/data/scales.lua' }
 
@@ -19,9 +20,8 @@ params:add {
 
 params:add {
     type='number', name='scale preset', id='scale_preset', min = 1, max = 8,
-    default = 1,
+    default = 1, action = function() redraw() end
 }
---TODO: make these preset level
 params:add {
     type='number', name='transpose', id='transpose', min = 0, max = 7,
     default = 0,
@@ -69,14 +69,20 @@ n = nest_ {
     transpose = _grid.number {
         x = { 9, 16 },
         y = 7,
+        lvl = function(s, x) 
+            local iv = tune.get_scales(params:get('scale_preset'))
+            local x = tune.wrap(x, 0, params:get('scale_preset'))
+            return (
+                tune.is_western() and (iv[x] == 7 or iv[x] == 0)
+            ) and { 4, 15 } or { 0, 15 }
+        end
     } :param('transpose'),
     octave = _grid.number {
         x = { 9, 16 },
         y = 8
     } :param('octave')
-} :connect { g = grid.connect() }
+} :connect { g = grid.connect(), screen = screen }
 
---TODO: screen interface - print scale in western notes if west
 
 params:add_separator()
 engine.name = 'PolySub'
