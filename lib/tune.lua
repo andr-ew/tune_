@@ -34,7 +34,7 @@ local iv_names = {
     "octaves"
 }
 local note_names = {
-    'a  ', 'a#', 'b  ', 'c  ', 'c#', 'd  ', 'd#', 'e  ', 'f  ', 'f#', 'g  ', 'g#'
+    'a', 'a#', 'b', 'c', 'c#', 'd', 'd#', 'e', 'f', 'f#', 'g', 'g#'
 }
 
 tune.params = function()
@@ -94,8 +94,8 @@ tune.degoct = function(row, column, pre, trans, toct)
     return deg, oct
 end
 
-tune.is_tonic = function(row, column, pre)
-    return tune.degoct(row, column, pre) == 1
+tune.is_tonic = function(row, column, pre, trans)
+    return tune.degoct(row, column, pre, trans) == 1
 end
 
 tune.hz = function(row, column, trans, toct, pre)
@@ -332,13 +332,14 @@ return function(arg)
                         return nest_(12):each(function(ii)
                             --TODO: nonwest
 
-                            local mul = 12
+                            local mul = 10
                             local p = kb.pos[ii]
                             local xx = (p.x - 1) * mul + x[2]
                             local yy = y[4 + p.y]
 
                             return _txt.label {
                                 x = xx, y = yy, 
+                                padding = 1.5,
                                 lvl = function()
                                     local iv = (
                                         ii-1-tune.tonics[params:get('tune_tonic_'..i)]
@@ -347,8 +348,21 @@ return function(arg)
 
                                     local is_interval = tab.contains(ivs, iv)
                                     local is_enabled = deg and (params:get('tune_scales_'..i..'_enable_'..deg) == 1)
+                                    local is_tonic = iv==0
 
-                                    return (is_interval and is_enabled) and 15  or 2
+                                    return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
+                                end,
+                                fill = function()
+                                    local iv = (
+                                        ii-1-tune.tonics[params:get('tune_tonic_'..i)]
+                                    )%12
+                                    local deg = tab.key(ivs, iv)
+
+                                    local is_interval = tab.contains(ivs, iv)
+                                    local is_enabled = deg and (params:get('tune_scales_'..i..'_enable_'..deg) == 1)
+                                    local is_tonic = iv==0
+
+                                    return (is_interval and is_enabled and is_tonic) and 10  or 0
                                 end,
                                 v = function()
                                     local iv = (
