@@ -321,6 +321,7 @@ return function(arg)
                             input = false,
                             x = x[2], y = y[4],
                             value = function()
+                                --TODO: nonwest
                                 local idx = tune.scales[params:get('tune_scales_'..i)][params:get('tune_row_interval_'..i)]
                                 return iv_names[idx] or idx
                             end
@@ -329,6 +330,8 @@ return function(arg)
                     toggles = nest_(#tune.scales):each(function(iii) 
                         local ivs = tune.scales[iii]
                         return nest_(12):each(function(ii)
+                            --TODO: nonwest
+
                             local mul = 12
                             local p = kb.pos[ii]
                             local xx = (p.x - 1) * mul + x[2]
