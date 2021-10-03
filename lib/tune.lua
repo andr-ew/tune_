@@ -264,8 +264,8 @@ return function(arg)
                         },
                         _txt.enc.option {
                             input = false,
-                            x = x[2], y = y[1],
-                            margin = 4, --lvl = { 0, 15 }
+                            x = x[2], y = y[1], lvl = { 2, 15 },
+                            margin = 7, --lvl = { 0, 15 }
                             options = function()
                                 local ops = {}
                                 for ii = 1,count.preset do
@@ -283,8 +283,8 @@ return function(arg)
                         },
                         _txt.enc.option {
                             input = false,
-                            x = x[2], y = y[2],
-                            margin = 3,
+                            x = x[2], y = y[2], lvl = { 2, 15 },
+                            margin = 6,
                             --TODO: non-west
                             options = function()
                                 local ops = {}
@@ -324,6 +324,45 @@ return function(arg)
                                 local idx = tune.scales[params:get('tune_scales_'..i)][params:get('tune_row_interval_'..i)]
                                 return iv_names[idx] or idx
                             end
+                        }
+                    },
+                    toggles = nest_(#tune.scales):each(function(iii) 
+                        local ivs = tune.scales[iii]
+                        return nest_(12):each(function(ii)
+                            local mul = 12
+                            local p = kb.pos[ii]
+                            local xx = (p.x - 1) * mul + x[2]
+                            local yy = y[4 + p.y]
+
+                            return _txt.label {
+                                x = xx, y = yy, 
+                                lvl = function()
+                                    local iv = (
+                                        ii-1-tune.tonics[params:get('tune_tonic_'..i)]
+                                    )%12
+                                    local deg = tab.key(ivs, iv)
+
+                                    local is_interval = tab.contains(ivs, iv)
+                                    local is_enabled = deg and (params:get('tune_scales_'..i..'_enable_'..deg) == 1)
+
+                                    return (is_interval and is_enabled) and 15  or 2
+                                end,
+                                v = function()
+                                    local iv = (
+                                        ii-1-tune.tonics[params:get('tune_tonic_'..i)]
+                                    )%12
+                                    return tab.contains(ivs,  iv)
+                                    and note_names[ii] or '.'
+                                end
+                            }
+                        end):merge { 
+                            enabled = function() 
+                                return iii == params:get('tune_scales_'..i) 
+                            end,
+                        }
+                    end):merge {
+                        label = _txt.label {
+                            x = x[1], y = y[6], v = 'toggles', align = 'right', lvl = 4
                         }
                     }
                 }
