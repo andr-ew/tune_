@@ -4,10 +4,10 @@
 -- 'strings' (words) are surrounded by quotes
 -- lists are comma (,) separated & surrounded by braces {  }
 
-root = 440
+root = 440 -- A440
 
-temperment = 'equal' --possible values: 'euqal' or 'just'
-tones = 12
+temperment = 'equal' -- possible values: 'euqal' or 'just'
+tones = 12 -- the number of octave divisions
 
 tonics = { 
     -9, --C
