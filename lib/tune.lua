@@ -53,7 +53,6 @@ for i,v in ipairs(mu.SCALES) do
     if scl.name == 'Minor Pentatonic' then minp = i end
     modes.west.scales[i] = scl
 end
-print(majp, minp)
 -- put major pentatonic & minor pentatonic in front
 table.insert(modes.west.scales, 1, table.remove(modes.west.scales, minp))
 table.insert(modes.west.scales, 1, table.remove(modes.west.scales, majp+1))
@@ -62,8 +61,7 @@ local function mode(pre)
     return modes[modenames[math.floor(states[pre].mode)]]
 end
 
---local 
-scale_names = {}
+local scale_names = {}
 for k,v in pairs(modes) do
     scale_names[k] = {}
     for i, vv in ipairs(v.scales) do
@@ -75,7 +73,7 @@ local function init_state()
     for i = 1, presets do
         states[i] = {
             mode = 1, --west
-            tonic = 3, --D
+            tonic = 1, --C
         }
         for k,_ in pairs(modes) do
             states[i][k] = {
@@ -102,7 +100,7 @@ for i = 1, 12 do
     tonics[i] = n
 end
 local function tonic(pre)
-    return states[pre].tonic
+    return tonics[states[pre].tonic]
 end
 
 
@@ -146,7 +144,7 @@ local note_names = {
     [12] = 'G#', [12.5] = 'A^b',
 }
 local tonic_names = {}
-for i = 1, 12 do tonic_names[i] = note_names[i] end
+for i = 4, 15 do table.insert(tonic_names, note_names[(i-1)%12+1]) end
 
 local function tuning(pre)
     local scl = state(pre).scale
@@ -201,6 +199,7 @@ end
 tune.hz = function(row, column, trans, toct, pre)
     local iv = intervals(pre)
     local deg, oct = tune.degoct(row, column, pre, trans, toct)
+    print('iv', iv[deg] + tonic(pre))
 
     --TODO just intonnation
     return 2^(tonic(pre)/mode(pre).tones) * 2^oct * 2^(iv[deg]/mode(pre).tones)
@@ -319,6 +318,7 @@ return function(arg)
                                         end,
                                         action = function(s, v)
                                             states[i].tonic = v
+                                            grid_redraw()
                                         end
                                     },
                                     _txt.enc.option {
@@ -329,16 +329,22 @@ return function(arg)
                                         end,
                                         action = function(s, v)
                                             st.scale = v
+                                            grid_redraw()
                                         end
                                     },
-                                    _txt.enc.option {
+                                    _txt.enc.number {
                                         label = 'tuning',
-                                        options = iv_names,
+                                        min = 1, max = 12, step = 1, inc = 1,
                                         value = function()
                                             return st.tuning[st.scale]
                                         end,
                                         action = function(s, v)
                                             st.tuning[st.scale] = v
+                                            grid_redraw()
+                                        end,
+                                        formatter = function(s, v)
+                                            local iv = intervals(i)
+                                            return iv_names[iv[(v-1)%#iv+1]+1]
                                         end
                                     }
                                 }:each(function(k, v) v.n = 3 end)
@@ -362,7 +368,7 @@ return function(arg)
                                             local deg = tab.key(ivs, iv)
 
                                             local is_interval = tab.contains(ivs, iv)
-                                            local is_enabled = deg and (st.toggles[iii][ii] == 1)
+                                            local is_enabled = deg and (st.toggles[iii][deg] == 1)
                                             local is_tonic = iv==0
 
                                             return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
@@ -374,7 +380,7 @@ return function(arg)
                                             local deg = tab.key(ivs, iv)
 
                                             local is_interval = tab.contains(ivs, iv)
-                                            local is_enabled = deg and (st.toggles[iii][ii] == 1)
+                                            local is_enabled = deg and (st.toggles[iii][deg] == 1)
                                             local is_tonic = iv==0
 
                                             return (is_interval and is_enabled and is_tonic) and 10  or 0
