@@ -213,7 +213,7 @@ tune.midi = function() end
 
 return function(arg)
     presets = arg.presets or presets
-    --TODO: arg.modes
+    --TODO: arg.modes (whether to have modes or fixed as west)
 
     --TODO: load state (from path arg.data)
     init_state()
@@ -239,169 +239,157 @@ return function(arg)
 
         return nest_(presets):each(function(i) 
             return nest_ {
-                mode_tab = _txt.enc.option {
-                    x = 0, y = top, n = 1,
-                    options = modenames,
-                    value = function() return states[i].mode end,
-                    action = function(s, v) states[i].mode = v end
-                },
-                mode = nest_(#modenames):each(function(j)
-                    local k = modenames[j]
-                    local st = states[i][k]
-
-                    return nest_ {
-                        enabled = function() return math.floor(states[i].mode)==j end,
-
-                        toggles = nest_(#modes[k].scales):each(function(iii)
-                            local scale = modes[k].scales[iii].iv
-
-                            return nest_(#scale):each(function(ii)
-                                local function pos(ax)
-                                    local r = kb.pos[
-                                       math.floor(scale[ii] + tonic(i)) % 12 + 1
-                                    ]
-                                    return r[ax]
-                                end
-                                return _grid.toggle {
-                                    x = function() return left + pos('x') - 1 end,
-                                    y = function() return top + 3 + pos('y') - 1 end,
-                                    lvl = { 8, 15 },
-                                    value = function() 
-                                        return st.toggles[iii][ii]
-                                    end,
-                                    action = function(s, v)
-                                        st.toggles[iii][ii] = v
-                                        redraw()
-                                    end
-                                }
-                            end):merge { 
-                                enabled = function() 
-                                    return iii == st.scale
+                grid = nest_ {
+                    toggles = nest_(12):each(function(ii)
+                        return nest_ {
+                            mutes = _grid.toggle {
+                                x = function() return left + kb.pos[ii].x - 1 end,
+                                y = function() return top + kb.pos[ii].y - 1 end,
+                                lvl = { 8, 15 },
+                                enabled = function()
+                                    local ivs = mode(i).scales[state(i).scale].iv
+                                    local iv = (ii-1-tonic(i))%12
+                                    return tab.contains(ivs,  iv)
                                 end,
+                                value = function() 
+                                    local scl = state(i).scale
+                                    local ivs = mode(i).scales[scl].iv
+                                    local iv = (ii-1-tonic(i))%12
+                                    local deg = tab.key(ivs, iv)
+                                    return deg and state(i).toggles[scl][deg] or 0
+                                end,
+                                action = function(s, v)
+                                    local scl = state(i).scale
+                                    local ivs = mode(i).scales[scl].iv
+                                    local iv = (ii-1-tonic(i))%12
+                                    local deg = tab.key(ivs, iv)
+                                    if deg then state(i).toggles[scl][deg] = v end
+                                    redraw()
+                                end
+                            },
+                            tonic = _grid.toggle {
+                                x = function() return left + kb.pos[ii].x - 1 end,
+                                y = function() return top + 3 + kb.pos[ii].y - 1 end,
+                                lvl = { 0, 15 },
+                                value = function()
+                                    return states[i].tonic == (ii - 4)%12+1 and 1 or 0
+                                end,
+                                action = function(s, v)
+                                    states[i].tonic = (ii - 4)%12+1
+                                    redraw()
+                                end
                             }
-                        end),
-                        --i named this affordance zoink because the z parameter is broken & this causes it to draw in the correct order :)
-                        zoink = nest_(12):each(function(ii) 
-                            local pos = kb.pos[ii]
-                            local lvl = 4
+                        }
+                    end),
+                    --i named this affordance zoink because the z parameter is broken & this causes it to draw in the correct order :)
+                    zoink = nest_(12):each(function(ii) 
+                        local pos = kb.pos[ii]
+                        local lvl = 4
 
-                            return _grid.fill {
+                        return nest_ {
+                            _grid.fill {
+                                x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
+                            },
+                            _grid.fill {
                                 x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
                             }
-                        end),
-                        screen = nest_ {
-                            preset = nest_ {
-                                _txt.enc.option {
-                                    input = false,
-                                    x = x[2], y = y[1], lvl = { 2, 15 },
-                                    margin = 7, --lvl = { 0, 15 }
-                                    options = function()
-                                        local ops = {}
-                                        for ii = 1,presets do
-                                            ops[ii] = ii
-                                        end
-                                        return ops
-                                    end,
-                                    value = i
-                                }
-                            },
-                            options = _txt.enc.list {
-                                n = 2,
-                                x = { x[2], 128 }, y = y[2], flow = 'y',
-                                sens = 0.5,
-                                items = nest_ {
-                                    _txt.enc.option {
-                                        label = 'tonic',
-                                        options = tonic_names,
-                                        value = function()
-                                            return states[i].tonic
-                                        end,
-                                        action = function(s, v)
-                                            states[i].tonic = v
-                                            grid_redraw()
-                                        end
-                                    },
-                                    _txt.enc.option {
-                                        label = 'scale',
-                                        options = scale_names[k],
-                                        value = function()
-                                            return st.scale
-                                        end,
-                                        action = function(s, v)
-                                            st.scale = v
-                                            grid_redraw()
-                                        end
-                                    },
-                                    _txt.enc.number {
-                                        label = 'tuning',
-                                        min = 1, max = 12, step = 1, inc = 1,
-                                        value = function()
-                                            return st.tuning[st.scale]
-                                        end,
-                                        action = function(s, v)
-                                            st.tuning[st.scale] = v
-                                            grid_redraw()
-                                        end,
-                                        formatter = function(s, v)
-                                            local iv = intervals(i)
-                                            return iv_names[iv[(v-1)%#iv+1]+1]
-                                        end
-                                    }
-                                }:each(function(k, v) v.n = 3 end)
-                            },
-                            toggles = nest_(#modes[k].scales):each(function(iii) 
-                                local ivs = modes[k].scales[iii].iv
-
-                                return nest_(12):each(function(ii)
-                                    local mul = 10
-                                    local p = kb.pos[ii]
-                                    local xx = (p.x - 1) * mul + x[2]
-                                    local yy = y[4 + p.y]
-
-                                    return _txt.label {
-                                        x = xx, y = yy, 
-                                        padding = 1.5,
-                                        lvl = function()
-                                            local iv = (
-                                                ii-1-tonic(i)
-                                            )%12
-                                            local deg = tab.key(ivs, iv)
-
-                                            local is_interval = tab.contains(ivs, iv)
-                                            local is_enabled = deg and (st.toggles[iii][deg] == 1)
-                                            local is_tonic = iv==0
-
-                                            return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
-                                        end,
-                                        fill = function()
-                                            local iv = (
-                                                ii-1-tonic(i)
-                                            )%12
-                                            local deg = tab.key(ivs, iv)
-
-                                            local is_interval = tab.contains(ivs, iv)
-                                            local is_enabled = deg and (st.toggles[iii][deg] == 1)
-                                            local is_tonic = iv==0
-
-                                            return (is_interval and is_enabled and is_tonic) and 10  or 0
-                                        end,
-                                        v = function()
-                                            local iv = (
-                                                ii-1-tonic(i)
-                                            )%12
-                                            return tab.contains(ivs,  iv)
-                                            and note_names[ii] or '.'
-                                        end
-                                    }
-                                end):merge { 
-                                    enabled = function() 
-                                        return iii == state(i).scale
-                                    end,
-                                }
-                            end)
                         }
-                    }
-                end)
+                    end)
+                },
+                screen = nest_ {
+                    toggles = nest_(12):each(function(ii)
+                        local mul = 10
+                        local p = kb.pos[ii]
+                        local xx = (p.x - 1) * mul + x[2]
+                        local yy = y[4 + p.y]
+
+                        return _txt.label {
+                            x = xx, y = yy, 
+                            padding = 1.5,
+                            lvl = function()
+                                local scl = state(i).scale
+                                local ivs = mode(i).scales[scl].iv
+                                local iv = (ii-1-tonic(i))%12
+                                local deg = tab.key(ivs, iv)
+
+                                local is_interval = tab.contains(ivs, iv)
+                                local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
+                                local is_tonic = iv==0
+
+                                return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
+                            end,
+                            fill = function()
+                                local scl = state(i).scale
+                                local ivs = mode(i).scales[scl].iv
+                                local iv = (ii-1-tonic(i))%12
+                                local deg = tab.key(ivs, iv)
+
+                                local is_interval = tab.contains(ivs, iv)
+                                local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
+                                local is_tonic = iv==0
+
+                                return (is_interval and is_enabled and is_tonic) and 10  or 0
+                            end,
+                            v = function()
+                                local scl = state(i).scale
+                                local ivs = mode(i).scales[scl].iv
+                                local iv = (ii-1-tonic(i))%12
+                                return tab.contains(ivs,  iv)
+                                and note_names[ii] or '.'
+                            end
+                        }
+                    end)
+                },
+                options = _txt.enc.list {
+                    n = 2,
+                    x = { x[2], 128 }, y = y[2], flow = 'y',
+                    sens = 0.5,
+                    items = nest_ {
+                        _txt.enc.option {
+                            label = 'mode',
+                            options = modenames,
+                            value = function() return states[i].mode end,
+                            action = function(s, v) states[i].mode = v end
+                        },
+                        -- _txt.enc.option {
+                        --     label = 'tonic',
+                        --     options = tonic_names,
+                        --     value = function()
+                        --         return states[i].tonic
+                        --     end,
+                        --     action = function(s, v)
+                        --         states[i].tonic = v
+                        --         grid_redraw()
+                        --     end
+                        -- },
+                        _txt.enc.option {
+                            label = 'scale',
+                            options = function() return scale_names[modenames[states[i].mode]] end,
+                            value = function()
+                                return state(i).scale
+                            end,
+                            action = function(s, v)
+                                state(i).scale = v
+                                grid_redraw()
+                            end
+                        },
+                        _txt.enc.number {
+                            label = 'tuning',
+                            min = 1, max = 12, step = 1, inc = 1,
+                            value = function()
+                                return state(i).tuning[state(i).scale]
+                            end,
+                            action = function(s, v)
+                                state(i).tuning[state(i).scale] = v
+                                grid_redraw()
+                            end,
+                            formatter = function(s, v)
+                                local iv = intervals(i)
+                                return iv_names[iv[(v-1)%#iv+1]+1]
+                            end
+                        }
+                    }:each(function(k, v) v.n = 3 end)
+                },
             }
         end):merge(o)
     end
