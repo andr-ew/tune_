@@ -220,15 +220,13 @@ return function(arg)
 
     --TODO: arg.tonic (whether to add the tonic option)
     
-    local x, y = {}, {}
+    local x, y
     do
-        local gap = 6
-        local top, mul = 6, 10
-
-        x = { 128/3 - gap/2, 128/3 + gap/2 }
-        for i = 1, 6 do
-            y[i] = (i-1) * mul + top
-        end
+        local top, bottom = 10, 64-6
+        local left, right = 4, 128-4
+        local mul = { x = (right - left) / 2, y = (bottom - top) / 2 }
+        x = { left, left + mul.x*5/4, [1.5] = 32  }
+        y = { top, bottom - mul.y*1/2, [1.5] = 20 }
     end
 
     return 
@@ -300,8 +298,8 @@ return function(arg)
                     toggles = nest_(12):each(function(ii)
                         local mul = 10
                         local p = kb.pos[ii]
-                        local xx = (p.x - 1) * mul + x[2]
-                        local yy = y[4 + p.y]
+                        local xx = x[1.5] + (p.x - 1) * mul
+                        local yy = y[1.5] + (p.y - 1) * mul
 
                         return _txt.label {
                             x = xx, y = yy, 
@@ -340,56 +338,43 @@ return function(arg)
                         }
                     end)
                 },
-                options = _txt.enc.list {
-                    n = 2,
-                    x = { x[2], 128 }, y = y[2], flow = 'y',
-                    sens = 0.5,
-                    items = nest_ {
-                        _txt.enc.option {
-                            label = 'mode',
-                            options = modenames,
-                            value = function() return states[i].mode end,
-                            action = function(s, v) states[i].mode = v end
-                        },
-                        -- _txt.enc.option {
-                        --     label = 'tonic',
-                        --     options = tonic_names,
-                        --     value = function()
-                        --         return states[i].tonic
-                        --     end,
-                        --     action = function(s, v)
-                        --         states[i].tonic = v
-                        --         grid_redraw()
-                        --     end
-                        -- },
-                        _txt.enc.option {
-                            label = 'scale',
-                            options = function() return scale_names[modenames[states[i].mode]] end,
-                            value = function()
-                                return state(i).scale
-                            end,
-                            action = function(s, v)
-                                state(i).scale = v
-                                grid_redraw()
-                            end
-                        },
-                        _txt.enc.number {
-                            label = 'tuning',
-                            min = 1, max = 12, step = 1, inc = 1,
-                            value = function()
-                                return state(i).tuning[state(i).scale]
-                            end,
-                            action = function(s, v)
-                                state(i).tuning[state(i).scale] = v
-                                grid_redraw()
-                            end,
-                            formatter = function(s, v)
-                                local iv = intervals(i)
-                                return iv_names[iv[(v-1)%#iv+1]+1]
-                            end
-                        }
-                    }:each(function(k, v) v.n = 3 end)
+                mode = _txt.enc.option {
+                    x = x[1], y = y[2], n = 2, line_wrap = 2,
+                    options = modenames,
+                    value = function() return states[i].mode end,
+                    action = function(s, v) states[i].mode = v end
+                }, 
+                scale = _txt.enc.number {
+                    x = x[1], y = y[1], n = 1, wrap = true,
+                    min = 1, step = 1, inc = 1, max = function() 
+                        return #scale_names[modenames[states[i].mode]] 
+                    end,
+                    formatter = function(s, v)
+                        return scale_names[modenames[states[i].mode]][v]
+                    end,
+                    value = function()
+                        return state(i).scale
+                    end,
+                    action = function(s, v)
+                        state(i).scale = v
+                        grid_redraw()
+                    end,
                 },
+                tuning = _txt.enc.number {
+                    x = x[2], y = y[2], n = 3, flow = 'y',
+                    min = 1, max = 12, step = 1, inc = 1,
+                    value = function()
+                        return state(i).tuning[state(i).scale]
+                    end,
+                    action = function(s, v)
+                        state(i).tuning[state(i).scale] = v
+                        grid_redraw()
+                    end,
+                    formatter = function(s, v)
+                        local iv = intervals(i)
+                        return iv_names[iv[(v-1)%#iv+1]+1]
+                    end
+                }
             }
         end):merge(o)
     end
