@@ -19,7 +19,6 @@ local modes = {
         temperment = 'just',
         scales = {
             -- more scales here ? minor scales ?
-            { name='ptolematic major', iv={1/1, 9/8, 6/5, 5/4, 4/3, 3/2, 5/3, 15/8 }},
             { name='pythagorean major', iv={1/1, 9/8, 81/64, 4/3, 3/2, 27/16, 243/128 }},
             { name= '12-tone normal', iv=ji.normal() }, 
             { name= '12-tone ptolemy', iv=ji.ptolemy() }, 
@@ -115,6 +114,7 @@ for i = 1,12 do
         for x,v in ipairs(kb.grid[y]) do
             if i == v then
                 kb.pos[i] = { x=x, y=y }
+                kb.pos[i+0.5] = { x=x, y=y }
             end
         end
     end
@@ -199,10 +199,15 @@ end
 tune.hz = function(row, column, trans, toct, pre)
     local iv = intervals(pre)
     local deg, oct = tune.degoct(row, column, pre, trans, toct)
-    print('iv', iv[deg] + tonic(pre))
 
-    --TODO just intonnation
-    return 2^(tonic(pre)/mode(pre).tones) * 2^oct * 2^(iv[deg]/mode(pre).tones)
+    print(mode(pre).temperment)
+    return (
+        2^(tonic(pre)/(mode(pre).tones or 12)) * 2^oct 
+        * ((mode(pre).temperment == 'just') 
+            and (iv[deg])
+            or (2^(iv[deg]/mode(pre).tones))
+        )
+    )
 end
 
 --TODO
@@ -225,7 +230,7 @@ return function(arg)
         local top, bottom = 10, 64-6
         local left, right = 4, 128-4
         local mul = { x = (right - left) / 2, y = (bottom - top) / 2 }
-        x = { left, left + mul.x*5/4, [1.5] = 32  }
+        x = { left, left + mul.x*5/4, [1.5] = 24  }
         y = { top, bottom - mul.y*1/2, [1.5] = 20 }
     end
 
@@ -238,7 +243,8 @@ return function(arg)
         return nest_(presets):each(function(i) 
             return nest_ {
                 grid = nest_ {
-                    toggles = nest_(12):each(function(ii)
+                    toggles = nest_(24):each(function(ii2)
+                        local ii = ii2/2 + 0.5
                         return nest_ {
                             mutes = _grid.toggle {
                                 x = function() return left + kb.pos[ii].x - 1 end,
@@ -265,18 +271,20 @@ return function(arg)
                                     redraw()
                                 end
                             },
-                            tonic = _grid.toggle {
-                                x = function() return left + kb.pos[ii].x - 1 end,
-                                y = function() return top + 3 + kb.pos[ii].y - 1 end,
-                                lvl = { 0, 15 },
-                                value = function()
-                                    return states[i].tonic == (ii - 4)%12+1 and 1 or 0
-                                end,
-                                action = function(s, v)
-                                    states[i].tonic = (ii - 4)%12+1
-                                    redraw()
-                                end
-                            }
+                        }
+                    end),
+                    tonic = nest_(12):each(function(ii)
+                        return _grid.toggle {
+                            x = function() return left + kb.pos[ii].x - 1 end,
+                            y = function() return top + 3 + kb.pos[ii].y - 1 end,
+                            lvl = { 0, 15 },
+                            value = function()
+                                return states[i].tonic == (ii - 4)%12+1 and 1 or 0
+                            end,
+                            action = function(s, v)
+                                states[i].tonic = (ii - 4)%12+1
+                                redraw()
+                            end
                         }
                     end),
                     --i named this affordance zoink because the z parameter is broken & this causes it to draw in the correct order :)
@@ -295,11 +303,12 @@ return function(arg)
                     end)
                 },
                 screen = nest_ {
-                    toggles = nest_(12):each(function(ii)
+                    toggles = nest_(24):each(function(ii2)
+                        local ii = ii2/2 + 0.5
                         local mul = 10
                         local p = kb.pos[ii]
-                        local xx = x[1.5] + (p.x - 1) * mul
-                        local yy = y[1.5] + (p.y - 1) * mul
+                        local xx = x[1.5] + (p.x - 1) * 14
+                        local yy = y[1.5] + (p.y - 1) * 10
 
                         return _txt.label {
                             x = xx, y = yy, 
@@ -331,9 +340,9 @@ return function(arg)
                             v = function()
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
-                                local iv = (ii-1-tonic(i))%12
+                                local iv = ((ii-1-tonic(i))*2)%24/2
                                 return tab.contains(ivs,  iv)
-                                and note_names[ii] or '.'
+                                    and note_names[((iv+tonic(i))*2)%24/2+1] or '.'
                             end
                         }
                     end)
