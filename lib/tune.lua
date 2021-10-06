@@ -2,13 +2,13 @@ local mu = require 'musicutil'
 local ji = require 'intonation'
 
 local presets = 8
+local modenames = { 'west', 'just', 'maqam' }
 
 local states = {}
 local function state(pre)
     return states[pre][modenames[states[pre].mode]]
 end
 
-local modenames = { 'west', 'just', 'maqam' }
 local modes = {
     west = {
         temperment = 'equal',
@@ -16,7 +16,7 @@ local modes = {
         scales = {},
     },
     just = {
-        temperment = 'just'
+        temperment = 'just',
         scales = {
             -- more scales here ? minor scales ?
             { name='ptolematic major', iv={1/1, 9/8, 6/5, 5/4, 4/3, 3/2, 5/3, 15/8 }},
@@ -47,25 +47,27 @@ local majp, minp
 for i,v in ipairs(mu.SCALES) do
     local scl = { name=v.name, iv = {} }
     for ii,vv in ipairs(v.intervals) do
-        if vv ~= 12 then table.insert(scl, vv) end
+        if vv ~= 12 then table.insert(scl.iv, vv) end
     end
     if scl.name == 'Major Pentatonic' then majp = i end
     if scl.name == 'Minor Pentatonic' then minp = i end
     modes.west.scales[i] = scl
 end
+print(majp, minp)
 -- put major pentatonic & minor pentatonic in front
 table.insert(modes.west.scales, 1, table.remove(modes.west.scales, minp))
-table.insert(modes.west.scales, 1, table.remove(modes.west.scales, majp))
+table.insert(modes.west.scales, 1, table.remove(modes.west.scales, majp+1))
 
 local function mode(pre)
     return modes[modenames[math.floor(states[pre].mode)]]
 end
 
-local scale_names = {}
+--local 
+scale_names = {}
 for k,v in pairs(modes) do
     scale_names[k] = {}
     for i, vv in ipairs(v.scales) do
-        scale_names[i] = vv.name
+        scale_names[k][i] = vv.name
     end
 end
 
@@ -81,14 +83,13 @@ local function init_state()
                 tuning = {},
                 toggles = {}
             }
-            local tuning = states[i][k].tuning
-            local toggles = states[i][k].toggles
-
             for ii,vv in ipairs(modes[k].scales) do
-                tuning[ii] = 1
-                toggles[ii] = {}
-                for iii, vvv in ipairs(modes[k].scales.iv) do
-                    toggles[ii][iii] = 1
+                states[i][k].tuning[ii] = 1
+                states[i][k].toggles[ii] = {}
+                for iii, vvv in ipairs(modes[k].scales[ii].iv) do
+                    --print('huh', i, ii, iii)
+                    states[i][k].toggles[ii][iii] = 1
+                    --print('err', states[i][k].toggles[ii][iii])
                 end
             end
         end
@@ -154,7 +155,8 @@ end
 
 local function intervals(pre)
     local scl = state(pre).scale
-    local all = mode(pre).scales[scl]
+    local all = mode(pre).scales[scl].iv
+
     local some = {}
     for i,v in ipairs(all) do
         if state(pre).toggles[scl][i] > 0 then 
@@ -163,9 +165,6 @@ local function intervals(pre)
     end
     if #some == 0 then table.insert(some, all[1]) end
     return some
-end
-local function tonic(pre)
-    return tune.tonics[math.min(params:get('tune_tonic_'..pre), #tune.tonics)]
 end
 
 local tune = {}
@@ -184,7 +183,7 @@ end
 --TODO: start row wrapping in the middle of the grid vertically somehow
 tune.degoct = function(row, column, pre, trans, toct)
     local iv = intervals(pre)
-    local rowint = tuning() - 1
+    local rowint = tuning(pre) - 1
     if rowint == 0 then rowint = #iv end
 
     local deg = (trans or 0) + row + ((column-1) * (rowint))
@@ -204,7 +203,7 @@ tune.hz = function(row, column, trans, toct, pre)
     local deg, oct = tune.degoct(row, column, pre, trans, toct)
 
     --TODO just intonnation
-    return 2^(tonic(pre)/tune.tones) * 2^oct * 2^(iv[deg]/mode(pre).tones)
+    return 2^(tonic(pre)/mode(pre).tones) * 2^oct * 2^(iv[deg]/mode(pre).tones)
 end
 
 --TODO
@@ -212,14 +211,6 @@ tune.volts = function() end
 
 --TODO
 tune.midi = function() end
-
-local function west(rooted)
-    return (tune.root % 110 == 0 or (not rooted))
-    and tune.temperment=='equal' 
-    and tune.tones==12 
-end
-
-tune.is_western = west
 
 return function(arg)
     presets = arg.presets or presets
@@ -249,8 +240,8 @@ return function(arg)
 
         return nest_(presets):each(function(i) 
             return nest_ {
-                mode_tab = _txt.encoder.option {
-                    x = 0, y = top,
+                mode_tab = _txt.enc.option {
+                    x = 0, y = top, n = 1,
                     options = modenames,
                     value = function() return states[i].mode end,
                     action = function(s, v) states[i].mode = v end
@@ -268,7 +259,7 @@ return function(arg)
                             return nest_(#scale):each(function(ii)
                                 local function pos(ax)
                                     local r = kb.pos[
-                                       (scale[ii] + tonic(i)) % 12 + 1
+                                       math.floor(scale[ii] + tonic(i)) % 12 + 1
                                     ]
                                     return r[ax]
                                 end
@@ -286,7 +277,7 @@ return function(arg)
                                 }
                             end):merge { 
                                 enabled = function() 
-                                    return iii = st.scale
+                                    return iii == st.scale
                                 end,
                             }
                         end),
@@ -307,7 +298,7 @@ return function(arg)
                                     margin = 7, --lvl = { 0, 15 }
                                     options = function()
                                         local ops = {}
-                                        for ii = 1,count.preset do
+                                        for ii = 1,presets do
                                             ops[ii] = ii
                                         end
                                         return ops

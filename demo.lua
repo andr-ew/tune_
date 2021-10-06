@@ -1,3 +1,77 @@
+printab = function(tabbb)
+    local function serialize(o, f, skip, dof, types, itab)
+        itab = itab or ""
+        local ntab = itab .. "    "
+        if types == nil then types = true end
+
+        if type(o) == "number" then
+            f(o)
+        elseif type(o) == "boolean" then
+            f(o and "true" or "false")
+        elseif type(o) == "string" then
+            f(string.format("%q", o))
+        elseif type(o) == "table" then
+            f("{")
+            local first = true
+
+            if #o then
+                f(" ")
+                for i,v in ipairs(o) do
+                    if type(v) == "string" or type(v) == "number" then
+                        serialize(v, f, skip, dof, types, ntab)
+                        f(", ")
+                    elseif type(v) == "table" then
+                        if first then
+                            f("\n")
+                            first = false
+                        end
+                        f(ntab)
+                        if v.serialize then v:serialize(f, skip, dof, types, ntab)
+                        else serialize(v, f, skip, dof, types, ntab) end
+                        f(",\n")
+                    end
+                end
+            end
+
+            first = true
+            for k,v in pairs(o) do
+                if type(k) == 'string' and (skip == nil or (not tab.contains(skip, k))) then
+                    if type(v) == 'function' then
+                        if dof then
+                            if first then
+                                f("\n")
+                                first = false
+                            end
+                            f(ntab .. k .. " = function() end")
+                            f(",\n")
+                        end
+                    else
+                        if first then
+                            f("\n")
+                            first = false
+                        end
+                        f(ntab  .. k ..  " = ")
+
+                        if type(v) == "table" and v.serialize then v:serialize(f, skip, dof, types, ntab)
+                        else serialize(v, f, skip, dof, types, ntab) end
+
+                        f(",\n")
+                    end
+                end
+            end
+            
+            if not first then f(itab) end
+            f("}")
+        end
+    end
+
+    local st = ""
+    serialize(tabbb, function(ss)
+        st = st .. ss
+    end)
+    print('printab: ',st)
+end
+
 include 'nest_/lib/nest/core'
 include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
@@ -6,7 +80,6 @@ include 'nest_/lib/nest/txt'
 tune, tune_ = include 'tune_/lib/tune' { presets = 8, config = 'tune_/lib/data/scales.lua' }
 
 params:add_separator('tuning')
-tune.params()
 
 local function clear()
     --n.keyboard:clear()
@@ -46,7 +119,7 @@ n = nest_ {
 
             local trans, oct, pre = params:get('transpose'), params:get('octave'), params:get('scale_preset')
 
-            local hz = tune.hz(k.x, k.y, trans, oct, pre)
+            local hz = 440 * tune.hz(k.x, k.y, trans, oct, pre)
             local midi = tune.midi(k.x, k.y, trans, oct, pre)
 
             if add then
@@ -70,10 +143,10 @@ n = nest_ {
         x = { 9, 16 },
         y = 7,
         lvl = function(s, x) 
-            local iv = tune.get_scales(params:get('scale_preset'))
+            local iv = tune.get_intervals(params:get('scale_preset'))
             local x = tune.wrap(x, 0, params:get('scale_preset'))
             return (
-                tune.is_western() and (iv[x] == 7 or iv[x] == 0)
+                (iv[x] == 7 or iv[x] == 0)
             ) and { 4, 15 } or { 0, 15 }
         end
     } :param('transpose'),
@@ -81,7 +154,7 @@ n = nest_ {
         x = { 9, 16 },
         y = 8
     } :param('octave')
-} :connect { g = grid.connect(), screen = screen }
+} :connect { g = grid.connect(), screen = screen, key = key, enc = enc }
 
 
 params:add_separator()
