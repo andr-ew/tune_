@@ -38,14 +38,13 @@ local modes = {
             }, 
             { 
                 name= '12-tone overtone', iv=ji.overtone(), map=map12,
-                sring={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
+                string={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
                 '5:3', '9:5', '15:8' }
             }, 
             { 
                 name= '12-tone undertone', iv=ji.undertone(), map=map12,
                 string={ '1:1', '16:15', '8:7', '32:27', '16:13', '4:3', '16:11', '32:21', 
                 '8:5', '32:19', '16:9', '32:17', }
-
             },
         },
     },
@@ -270,22 +269,36 @@ return function(arg)
                                 y = function() return top + kb.pos[ii].y - 1 end,
                                 lvl = { 8, 15 },
                                 enabled = function()
-                                    local ivs = mode(i).scales[state(i).scale].iv
-                                    local iv = (ii-1-tonic(i))%12
-                                    return tab.contains(ivs,  iv)
-                                end,
-                                value = function() 
+                                    local ji = mode(i).temperment == 'just'
                                     local scl = state(i).scale
                                     local ivs = mode(i).scales[scl].iv
+                                    local map = ji and mode(i).scales[scl].map
                                     local iv = (ii-1-tonic(i))%12
-                                    local deg = tab.key(ivs, iv)
+                                    local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+
+                                    local is_interval = tab.contains(ivs, iv)
+                                    if ji then is_interval = tab.contains(map, iv) end
+
+                                    return is_interval
+                                end,
+                                value = function() 
+                                    local ji = mode(i).temperment == 'just'
+                                    local scl = state(i).scale
+                                    local ivs = mode(i).scales[scl].iv
+                                    local map = ji and mode(i).scales[scl].map
+                                    local iv = (ii-1-tonic(i))%12
+                                    local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+
                                     return deg and state(i).toggles[scl][deg] or 0
                                 end,
                                 action = function(s, v)
+                                    local ji = mode(i).temperment == 'just'
                                     local scl = state(i).scale
                                     local ivs = mode(i).scales[scl].iv
+                                    local map = ji and mode(i).scales[scl].map
                                     local iv = (ii-1-tonic(i))%12
-                                    local deg = tab.key(ivs, iv)
+                                    local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+
                                     if deg then state(i).toggles[scl][deg] = v end
                                     redraw()
                                 end
