@@ -9,6 +9,8 @@ local function state(pre)
     return states[pre][modenames[states[pre].mode]]
 end
 
+local map12 = {}; for i = 1,12 do map12[i] = i-1 end
+
 local modes = {
     west = {
         temperment = 'equal',
@@ -19,20 +21,32 @@ local modes = {
         temperment = 'just',
         scales = {
             -- more scales here ? minor scales ?
-            { name='pythagorean major', iv={
-                1/1, 
-                9/8, 
-                81/64, 
-                4/3, 
-                3/2, 
-                27/16, 
-                243/128 
-            }},
-            { name= '12-tone normal', iv=ji.normal() }, 
-            { name= '12-tone ptolemy', iv=ji.ptolemy() }, 
-            { name= '12-tone overtone', iv=ji.overtone() }, 
-            { name= '12-tone undertone', iv=ji.undertone() }, 
-            { name= '12-tone lamonte', iv=ji.lamonte() }, 
+            { name='pythagorean major', 
+                iv={ 1/1, 9/8, 81/64, 4/3, 3/2, 27/16, 243/128 },
+                map = { 0, 2, 4, 5, 7, 9, 11, },
+                string={ '1:1', '9:8', '81:64', '4:3', '3:2', '27:16', '243:128' }
+            },
+            { 
+                name= '12-tone normal', iv=ji.normal(), map=map12, 
+                string={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
+                '5:3', '16:9', '15:8', },
+            }, 
+            { 
+                name= '12-tone ptolemy', iv=ji.ptolemy(), map=map12,
+                string={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
+                '5:3', '9:5', '15:8', }
+            }, 
+            { 
+                name= '12-tone overtone', iv=ji.overtone(), map=map12,
+                sring={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
+                '5:3', '9:5', '15:8' }
+            }, 
+            { 
+                name= '12-tone undertone', iv=ji.undertone(), map=map12,
+                string={ '1:1', '16:15', '8:7', '32:27', '16:13', '4:3', '16:11', '32:21', 
+                '8:5', '32:19', '16:9', '32:17', }
+
+            },
         },
     },
     maqam = {
@@ -312,42 +326,56 @@ return function(arg)
                         local ii = ii2/2 + 0.5
                         local mul = 10
                         local p = kb.pos[ii]
-                        local xx = x[1.5] + (p.x - 1) * 14
+                        local xx = 4 + (p.x - 1) * 20
                         local yy = y[1.5] + (p.y - 1) * 10
 
                         return _txt.label {
                             x = xx, y = yy, 
                             padding = 1.5,
                             lvl = function()
+                                local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
+                                local map = ji and mode(i).scales[scl].map
                                 local iv = (ii-1-tonic(i))%12
-                                local deg = tab.key(ivs, iv)
+                                local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
 
                                 local is_interval = tab.contains(ivs, iv)
+                                if ji then is_interval = tab.contains(map, iv) end
                                 local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
                                 local is_tonic = iv==0
 
                                 return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
                             end,
                             fill = function()
+                                local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
+                                local map = ji and mode(i).scales[scl].map
                                 local iv = (ii-1-tonic(i))%12
-                                local deg = tab.key(ivs, iv)
+                                local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
 
-                                local is_interval = tab.contains(ivs, iv)
+                                local is_interval = ji and tab.contains(map, iv) or tab.contains(ivs, iv)
                                 local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
                                 local is_tonic = iv==0
 
                                 return (is_interval and is_enabled and is_tonic) and 10  or 0
                             end,
                             v = function()
+                                local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
-                                local iv = ((ii-1-tonic(i))*2)%24/2
-                                return tab.contains(ivs,  iv)
-                                    and note_names[((iv+tonic(i))*2)%24/2+1] or '.'
+                                local map = ji and mode(i).scales[scl].map
+                                local str = ji and mode(i).scales[scl].string
+                                local iv = (ii-1-tonic(i))%12
+                                local deg = ji and tab.key(map, iv)
+
+                                return ji and (
+                                    tab.contains(map, iv) and str[deg] or '.'
+                                ) or (
+                                    tab.contains(ivs, iv)
+                                    and note_names[(iv+tonic(i))%12+1] or '.'
+                                )
                             end
                         }
                     end)
@@ -388,8 +416,21 @@ return function(arg)
                         grid_redraw()
                     end,
                     formatter = function(s, v)
-                        local iv = intervals(i)
-                        return iv_names[iv[(v-1)%#iv+1]+1]
+                        local ji = mode(i).temperment == 'just'
+                        local deg
+
+                        if ji then
+                            local scl = state(i).scale
+                            local map = mode(i).scales[scl].map
+                            local ivs = mode(i).scales[scl].iv
+                            local iv = intervals(i)
+                            deg = map[tab.key(ivs, iv[(v-1)%#iv+1])]
+                        else
+                            local iv = intervals(i)
+                            deg = iv[(v-1)%#iv+1]
+                        end
+
+                        return iv_names[deg+1]
                     end
                 }
             }
