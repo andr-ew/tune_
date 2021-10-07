@@ -179,9 +179,12 @@ tune.setup = function(arg)
 end
 
 tune.read = function(path)
+    local t, err = tab.load(path)
+    if t then states = t else print(err) end
 end
 
 tune.write = function(path)
+    print(tab.save(states, path..'tune.data'))
 end
 
 local tune_ = function(o)
