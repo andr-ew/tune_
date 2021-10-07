@@ -19,7 +19,15 @@ local modes = {
         temperment = 'just',
         scales = {
             -- more scales here ? minor scales ?
-            { name='pythagorean major', iv={1/1, 9/8, 81/64, 4/3, 3/2, 27/16, 243/128 }},
+            { name='pythagorean major', iv={
+                1/1, 
+                9/8, 
+                81/64, 
+                4/3, 
+                3/2, 
+                27/16, 
+                243/128 
+            }},
             { name= '12-tone normal', iv=ji.normal() }, 
             { name= '12-tone ptolemy', iv=ji.ptolemy() }, 
             { name= '12-tone overtone', iv=ji.overtone() }, 
@@ -34,11 +42,11 @@ local modes = {
         -- could defnintely use some more maqamat !
         scales = {
             --1st jins      2nd jins
-            { name = 'Bayati (Jins Nahawand)', iv = { 2, 3.5, 5, 7, 9, 10, 12, }},
-            { name = 'Bayati (Jins Rast)', iv = { 2, 3.5, 5, 7, 9, 10.5, 12, }},
-            { name = 'Bayati Shuri', iv = { 2, 3.5, 5, 7, 8, 11.5, 12, }},
-            { name = 'Hijaz (Jins Nahawand)', iv = { 2, 3, 6, 7,   9, 10, 12, }},
-            { name = 'Hijaz (Jins Rast)', iv = { 2, 3, 6, 7,   9, 10.5, 12, }},
+            { name = 'Bayati (Jins Nahawand)', iv = { 0, 1.5, 3, 5, 7, 8, 10, }},
+            { name = 'Bayati (Jins Rast)', iv = { 0, 1.5, 3, 5, 7, 8.5, 10, }},
+            { name = 'Bayati Shuri', iv = { 0, 1.5, 3, 5, 6, 9.5, 10, }},
+            { name = 'Hijaz (Jins Nahawand)', iv = { 0, 1, 4, 5, 7, 8, 10, }},
+            { name = 'Hijaz (Jins Rast)', iv = { 0, 1, 4, 5, 7, 8.5, 10, }},
         }
     }
 }
@@ -84,9 +92,7 @@ local function init_state()
                 states[i][k].tuning[ii] = 1
                 states[i][k].toggles[ii] = {}
                 for iii, vvv in ipairs(modes[k].scales[ii].iv) do
-                    --print('huh', i, ii, iii)
                     states[i][k].toggles[ii][iii] = 1
-                    --print('err', states[i][k].toggles[ii][iii])
                 end
             end
         end
@@ -200,7 +206,6 @@ tune.hz = function(row, column, trans, toct, pre)
     local iv = intervals(pre)
     local deg, oct = tune.degoct(row, column, pre, trans, toct)
 
-    print(mode(pre).temperment)
     return (
         2^(tonic(pre)/(mode(pre).tones or 12)) * 2^oct 
         * ((mode(pre).temperment == 'just') 
@@ -351,7 +356,10 @@ return function(arg)
                     x = x[1], y = y[2], n = 2, line_wrap = 2,
                     options = modenames,
                     value = function() return states[i].mode end,
-                    action = function(s, v) states[i].mode = v end
+                    action = function(s, v) 
+                        states[i].mode = v 
+                        grid_redraw()
+                    end
                 }, 
                 scale = _txt.enc.number {
                     x = x[1], y = y[1], n = 1, wrap = true,
