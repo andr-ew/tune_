@@ -3,7 +3,8 @@ include 'nest_/lib/nest/norns'
 include 'nest_/lib/nest/grid'
 include 'nest_/lib/nest/txt'
 
-tune, tune_ = include 'tune_/lib/tune' { presets = 8, config = 'tune_/lib/data/scales.lua' }
+tune, tune_ = include 'tune_/lib/tune' 
+tune.setup { presets = 8, scales = include 'tune_/lib/scales' }
 
 params:add_separator('tuning')
 

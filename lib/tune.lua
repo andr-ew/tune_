@@ -1,93 +1,17 @@
-local mu = require 'musicutil'
-local ji = require 'intonation'
-
 local presets = 8
-local modenames = { 'west', 'just', 'maqam' }
+local modenames = {}
 
 local states = {}
 local function state(pre)
     return states[pre][modenames[states[pre].mode]]
 end
 
-local map12 = {}; for i = 1,12 do map12[i] = i-1 end
-
-local modes = {
-    west = {
-        temperment = 'equal',
-        tones = 12,
-        scales = {},
-    },
-    just = {
-        temperment = 'just',
-        scales = {
-            -- more scales here ? minor scales ?
-            { name='pythagorean major', 
-                iv={ 1/1, 9/8, 81/64, 4/3, 3/2, 27/16, 243/128 },
-                map = { 0, 2, 4, 5, 7, 9, 11, },
-                string={ '1:1', '9:8', '81:64', '4:3', '3:2', '27:16', '243:128' }
-            },
-            { 
-                name= '12-tone normal', iv=ji.normal(), map=map12, 
-                string={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
-                '5:3', '16:9', '15:8', },
-            }, 
-            { 
-                name= '12-tone ptolemy', iv=ji.ptolemy(), map=map12,
-                string={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
-                '5:3', '9:5', '15:8', }
-            }, 
-            { 
-                name= '12-tone overtone', iv=ji.overtone(), map=map12,
-                string={ '1:1', '16:15', '9:8', '6:5', '5:4', '4:3', '45:32', '3:2', '8:5', 
-                '5:3', '9:5', '15:8' }
-            }, 
-            { 
-                name= '12-tone undertone', iv=ji.undertone(), map=map12,
-                string={ '1:1', '16:15', '8:7', '32:27', '16:13', '4:3', '16:11', '32:21', 
-                '8:5', '32:19', '16:9', '32:17', }
-            },
-        },
-    },
-    maqam = {
-        temperment = 'equal',
-        tones = 12,
-
-        -- could defnintely use some more maqamat !
-        scales = {
-            --1st jins      2nd jins
-            { name = 'Bayati (Jins Nahawand)', iv = { 0, 1.5, 3, 5, 7, 8, 10, }},
-            { name = 'Bayati (Jins Rast)', iv = { 0, 1.5, 3, 5, 7, 8.5, 10, }},
-            { name = 'Bayati Shuri', iv = { 0, 1.5, 3, 5, 6, 9.5, 10, }},
-            { name = 'Hijaz (Jins Nahawand)', iv = { 0, 1, 4, 5, 7, 8, 10, }},
-            { name = 'Hijaz (Jins Rast)', iv = { 0, 1, 4, 5, 7, 8.5, 10, }},
-        }
-    }
-}
-local majp, minp
-for i,v in ipairs(mu.SCALES) do
-    local scl = { name=v.name, iv = {} }
-    for ii,vv in ipairs(v.intervals) do
-        if vv ~= 12 then table.insert(scl.iv, vv) end
-    end
-    if scl.name == 'Major Pentatonic' then majp = i end
-    if scl.name == 'Minor Pentatonic' then minp = i end
-    modes.west.scales[i] = scl
-end
--- put major pentatonic & minor pentatonic in front
-table.insert(modes.west.scales, 1, table.remove(modes.west.scales, minp))
-table.insert(modes.west.scales, 1, table.remove(modes.west.scales, majp+1))
-
+local modes = {}
 local function mode(pre)
     return modes[modenames[math.floor(states[pre].mode)]]
 end
 
 local scale_names = {}
-for k,v in pairs(modes) do
-    scale_names[k] = {}
-    for i, vv in ipairs(v.scales) do
-        scale_names[k][i] = vv.name
-    end
-end
 
 local function init_state()
     for i = 1, presets do
@@ -234,13 +158,36 @@ tune.volts = function() end
 --TODO
 tune.midi = function() end
 
-return function(arg)
+tune.setup = function(arg)
     presets = arg.presets or presets
-    --TODO: arg.modes (whether to have modes or fixed as west)
+    modes = arg.scales
 
-    --TODO: load state (from path arg.data)
+    modenames = { 'west', 'just' }
+    for k,_ in pairs(modes) do 
+        if not tab.contains(modenames, k) then table.insert(modenames, k) end
+    end
+    for k,v in pairs(modes) do
+        scale_names[k] = {}
+        for i, vv in ipairs(v.scales) do
+            scale_names[k][i] = vv.name
+        end
+    end
+
     init_state()
 
+    return tune
+end
+
+tune.read = function(path)
+end
+
+tune.write = function(path)
+end
+
+local tune_ = function(o)
+    local left, top = o.left or 1, o.top or 1
+    local width = o.width or 16
+    
     --TODO: arg.tonic (whether to add the tonic option)
     
     local x, y
@@ -252,100 +199,17 @@ return function(arg)
         y = { top, bottom - mul.y*1/2, [1.5] = 20 }
     end
 
-    return 
-    tune,
-    function(o)
-        local left, top = o.left or 1, o.top or 1
-        local width = o.width or 16
-
-        return nest_(presets):each(function(i) 
-            return nest_ {
-                grid = nest_ {
-                    toggles = nest_(24):each(function(ii2)
-                        local ii = ii2/2 + 0.5
-                        return nest_ {
-                            mutes = _grid.toggle {
-                                x = function() return left + kb.pos[ii].x - 1 end,
-                                y = function() return top + kb.pos[ii].y - 1 end,
-                                lvl = { 8, 15 },
-                                enabled = function()
-                                    local ji = mode(i).temperment == 'just'
-                                    local scl = state(i).scale
-                                    local ivs = mode(i).scales[scl].iv
-                                    local map = ji and mode(i).scales[scl].map
-                                    local iv = (ii-1-tonic(i))%12
-                                    local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
-
-                                    local is_interval = tab.contains(ivs, iv)
-                                    if ji then is_interval = tab.contains(map, iv) end
-
-                                    return is_interval
-                                end,
-                                value = function() 
-                                    local ji = mode(i).temperment == 'just'
-                                    local scl = state(i).scale
-                                    local ivs = mode(i).scales[scl].iv
-                                    local map = ji and mode(i).scales[scl].map
-                                    local iv = (ii-1-tonic(i))%12
-                                    local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
-
-                                    return deg and state(i).toggles[scl][deg] or 0
-                                end,
-                                action = function(s, v)
-                                    local ji = mode(i).temperment == 'just'
-                                    local scl = state(i).scale
-                                    local ivs = mode(i).scales[scl].iv
-                                    local map = ji and mode(i).scales[scl].map
-                                    local iv = (ii-1-tonic(i))%12
-                                    local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
-
-                                    if deg then state(i).toggles[scl][deg] = v end
-                                    redraw()
-                                end
-                            },
-                        }
-                    end),
-                    tonic = nest_(12):each(function(ii)
-                        return _grid.toggle {
+    return nest_(presets):each(function(i) 
+        return nest_ {
+            grid = nest_ {
+                toggles = nest_(24):each(function(ii2)
+                    local ii = ii2/2 + 0.5
+                    return nest_ {
+                        mutes = _grid.toggle {
                             x = function() return left + kb.pos[ii].x - 1 end,
-                            y = function() return top + 3 + kb.pos[ii].y - 1 end,
-                            lvl = { 0, 15 },
-                            value = function()
-                                return states[i].tonic == (ii - 4)%12+1 and 1 or 0
-                            end,
-                            action = function(s, v)
-                                states[i].tonic = (ii - 4)%12+1
-                                redraw()
-                            end
-                        }
-                    end),
-                    --i named this affordance zoink because the z parameter is broken & this causes it to draw in the correct order :)
-                    zoink = nest_(12):each(function(ii) 
-                        local pos = kb.pos[ii]
-                        local lvl = 4
-
-                        return nest_ {
-                            _grid.fill {
-                                x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
-                            },
-                            _grid.fill {
-                                x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
-                            }
-                        }
-                    end)
-                },
-                screen = nest_ {
-                    toggles = nest_(24):each(function(ii2)
-                        local ii = ii2/2 + 0.5
-                        local mul = 10
-                        local p = kb.pos[ii]
-                        local xx = 4 + (p.x - 1) * 20
-                        local yy = y[1.5] + (p.y - 1) * 10
-
-                        return _txt.label {
-                            x = xx, y = yy, 
-                            padding = 1.5,
-                            lvl = function()
+                            y = function() return top + kb.pos[ii].y - 1 end,
+                            lvl = { 8, 15 },
+                            enabled = function()
                                 local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
@@ -355,12 +219,10 @@ return function(arg)
 
                                 local is_interval = tab.contains(ivs, iv)
                                 if ji then is_interval = tab.contains(map, iv) end
-                                local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
-                                local is_tonic = iv==0
 
-                                return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
+                                return is_interval
                             end,
-                            fill = function()
+                            value = function() 
                                 local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
@@ -368,85 +230,165 @@ return function(arg)
                                 local iv = (ii-1-tonic(i))%12
                                 local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
 
-                                local is_interval = ji and tab.contains(map, iv) or tab.contains(ivs, iv)
-                                local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
-                                local is_tonic = iv==0
-
-                                return (is_interval and is_enabled and is_tonic) and 10  or 0
+                                return deg and state(i).toggles[scl][deg] or 0
                             end,
-                            v = function()
+                            action = function(s, v)
                                 local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
                                 local map = ji and mode(i).scales[scl].map
-                                local str = ji and mode(i).scales[scl].string
                                 local iv = (ii-1-tonic(i))%12
-                                local deg = ji and tab.key(map, iv)
+                                local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
 
-                                return ji and (
-                                    tab.contains(map, iv) and str[deg] or '.'
-                                ) or (
-                                    tab.contains(ivs, iv)
-                                    and note_names[(iv+tonic(i))%12+1] or '.'
-                                )
+                                if deg then state(i).toggles[scl][deg] = v end
+                                redraw()
                             end
-                        }
-                    end)
-                },
-                mode = _txt.enc.option {
-                    x = x[1], y = y[2], n = 2, line_wrap = 2,
-                    options = modenames,
-                    value = function() return states[i].mode end,
-                    action = function(s, v) 
-                        states[i].mode = v 
-                        grid_redraw()
-                    end
-                }, 
-                scale = _txt.enc.number {
-                    x = x[1], y = y[1], n = 1, wrap = true,
-                    min = 1, step = 1, inc = 1, max = function() 
-                        return #scale_names[modenames[states[i].mode]] 
-                    end,
-                    formatter = function(s, v)
-                        return scale_names[modenames[states[i].mode]][v]
-                    end,
-                    value = function()
-                        return state(i).scale
-                    end,
-                    action = function(s, v)
-                        state(i).scale = v
-                        grid_redraw()
-                    end,
-                },
-                tuning = _txt.enc.number {
-                    x = x[2], y = y[2], n = 3, flow = 'y',
-                    min = 1, max = 12, step = 1, inc = 1,
-                    value = function()
-                        return state(i).tuning[state(i).scale]
-                    end,
-                    action = function(s, v)
-                        state(i).tuning[state(i).scale] = v
-                        grid_redraw()
-                    end,
-                    formatter = function(s, v)
-                        local ji = mode(i).temperment == 'just'
-                        local deg
-
-                        if ji then
-                            local scl = state(i).scale
-                            local map = mode(i).scales[scl].map
-                            local ivs = mode(i).scales[scl].iv
-                            local iv = intervals(i)
-                            deg = map[tab.key(ivs, iv[(v-1)%#iv+1])]
-                        else
-                            local iv = intervals(i)
-                            deg = iv[(v-1)%#iv+1]
+                        },
+                    }
+                end),
+                tonic = nest_(12):each(function(ii)
+                    return _grid.toggle {
+                        x = function() return left + kb.pos[ii].x - 1 end,
+                        y = function() return top + 3 + kb.pos[ii].y - 1 end,
+                        lvl = { 0, 15 },
+                        value = function()
+                            return states[i].tonic == (ii - 4)%12+1 and 1 or 0
+                        end,
+                        action = function(s, v)
+                            states[i].tonic = (ii - 4)%12+1
+                            redraw()
                         end
+                    }
+                end),
+                --i named this affordance zoink because the z parameter is broken & this causes it to draw in the correct order :)
+                zoink = nest_(12):each(function(ii) 
+                    local pos = kb.pos[ii]
+                    local lvl = 4
 
-                        return iv_names[deg+1]
+                    return nest_ {
+                        _grid.fill {
+                            x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
+                        },
+                        _grid.fill {
+                            x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
+                        }
+                    }
+                end)
+            },
+            screen = nest_ {
+                toggles = nest_(24):each(function(ii2)
+                    local ii = ii2/2 + 0.5
+                    local mul = 10
+                    local p = kb.pos[ii]
+                    local xx = 4 + (p.x - 1) * 20
+                    local yy = y[1.5] + (p.y - 1) * 10
+
+                    return _txt.label {
+                        x = xx, y = yy, 
+                        padding = 1.5,
+                        lvl = function()
+                            local ji = mode(i).temperment == 'just'
+                            local scl = state(i).scale
+                            local ivs = mode(i).scales[scl].iv
+                            local map = ji and mode(i).scales[scl].map
+                            local iv = (ii-1-tonic(i))%12
+                            local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+
+                            local is_interval = tab.contains(ivs, iv)
+                            if ji then is_interval = tab.contains(map, iv) end
+                            local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
+                            local is_tonic = iv==0
+
+                            return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
+                        end,
+                        fill = function()
+                            local ji = mode(i).temperment == 'just'
+                            local scl = state(i).scale
+                            local ivs = mode(i).scales[scl].iv
+                            local map = ji and mode(i).scales[scl].map
+                            local iv = (ii-1-tonic(i))%12
+                            local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+
+                            local is_interval = ji and tab.contains(map, iv) or tab.contains(ivs, iv)
+                            local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
+                            local is_tonic = iv==0
+
+                            return (is_interval and is_enabled and is_tonic) and 10  or 0
+                        end,
+                        v = function()
+                            local ji = mode(i).temperment == 'just'
+                            local scl = state(i).scale
+                            local ivs = mode(i).scales[scl].iv
+                            local map = ji and mode(i).scales[scl].map
+                            local str = ji and mode(i).scales[scl].string
+                            local iv = (ii-1-tonic(i))%12
+                            local deg = ji and tab.key(map, iv)
+
+                            return ji and (
+                                tab.contains(map, iv) and str[deg] or '.'
+                            ) or (
+                                tab.contains(ivs, iv)
+                                and note_names[(iv+tonic(i))%12+1] or '.'
+                            )
+                        end
+                    }
+                end)
+            },
+            mode = _txt.enc.option {
+                x = x[1], y = y[2], n = 2, line_wrap = 2,
+                options = modenames,
+                value = function() return states[i].mode end,
+                action = function(s, v) 
+                    states[i].mode = v 
+                    grid_redraw()
+                end
+            }, 
+            scale = _txt.enc.number {
+                x = x[1], y = y[1], n = 1, wrap = true,
+                min = 1, step = 1, inc = 1, max = function() 
+                    return #scale_names[modenames[states[i].mode]] 
+                end,
+                formatter = function(s, v)
+                    return scale_names[modenames[states[i].mode]][v]
+                end,
+                value = function()
+                    return state(i).scale
+                end,
+                action = function(s, v)
+                    state(i).scale = v
+                    grid_redraw()
+                end,
+            },
+            tuning = _txt.enc.number {
+                x = x[2], y = y[2], n = 3, flow = 'y',
+                min = 1, max = 12, step = 1, inc = 1,
+                value = function()
+                    return state(i).tuning[state(i).scale]
+                end,
+                action = function(s, v)
+                    state(i).tuning[state(i).scale] = v
+                    grid_redraw()
+                end,
+                formatter = function(s, v)
+                    local ji = mode(i).temperment == 'just'
+                    local deg
+
+                    if ji then
+                        local scl = state(i).scale
+                        local map = mode(i).scales[scl].map
+                        local ivs = mode(i).scales[scl].iv
+                        local iv = intervals(i)
+                        deg = map[tab.key(ivs, iv[(v-1)%#iv+1])]
+                    else
+                        local iv = intervals(i)
+                        deg = iv[(v-1)%#iv+1]
                     end
-                }
+
+                    return iv_names[deg+1]
+                end
             }
-        end):merge(o)
-    end
+        }
+    end):merge(o)
 end
+
+return tune, tune_
