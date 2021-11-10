@@ -263,8 +263,7 @@ local tune_ = function(o)
                         end
                     }
                 end),
-                --i named this affordance zoink because the z parameter is broken & this causes it to draw in the correct order :)
-                zoink = nest_(12):each(function(ii) 
+                [100] = nest_(12):each(function(ii) 
                     local pos = kb.pos[ii]
                     local lvl = 4
 
