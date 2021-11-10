@@ -26,8 +26,8 @@ local maqam = {
 }
 
 local scales = {
-    { name='12tet', temperment = 'equal', scales = west },
-    { name='maqam', temperment = 'equal', scales = maqam },
+    { name='12tet', temperment = 'equal', tones = 12, scales = west },
+    { name='maqam', temperment = 'equal', tones = 12, scales = maqam },
 }
 
 -- JI tunings -- thx ezra !
@@ -36,9 +36,11 @@ local JI = require 'lib/intonation'
 
 local pythag = function()
    local function p5(a, b)
+       print(3^a, 2^b) 
       return (3^a) / (2^b)
    end
    local function p4(a, b)
+       print(2^a, 3^b) 
       return (2^a) / (3^b)
    end
    return {
@@ -59,7 +61,7 @@ local pythag = function()
 end
 table.insert(scales, {
     name = 'ji pythagoras',
-    iv = west,
+    scales = west,
     ratios = pythag(),
     temperment = 'just',
 })
@@ -69,7 +71,7 @@ table.insert(scales, {
 
 table.insert(scales, {
     name = 'ji ptolemaic',
-    iv = west,
+    scales = west,
     temperment = 'just',
     ratios = {	    
         1,            -- C  
@@ -89,28 +91,28 @@ table.insert(scales, {
 
 table.insert(scales, {
     name = 'ji normal',
-    iv = west,
+    scales = west,
     ratios = JI.normal(),
     temperment = 'just',
 })
 
 table.insert(scales, {
     name = 'ji overtone',
-    iv = west,
+    scales = west,
     ratios = JI.overtone(),
     temperment = 'just',
 })
 
 table.insert(scales, {
     name = 'ji undertone',
-    iv = west,
+    scales = west,
     ratios = JI.undertone(),
     temperment = 'just',
 })
 
 table.insert(scales, {
     name = 'ji lamonte',
-    iv = west,
+    scales = west,
     ratios = JI.lamonte(),
     temperment = 'just',
 })
@@ -138,7 +140,7 @@ local qmt = function()
 end
 table.insert(scales, {
     name = 'ji meantone',
-    iv = west,
+    scales = west,
     ratios = qmt(),
     temperment = 'just',
 })
@@ -164,7 +166,7 @@ local werck3 = function()
 end
 table.insert(scales, {
     name = 'ji werck3',
-    iv = west,
+    scales = west,
     ratios = werck3(),
     temperment = 'just',
 })

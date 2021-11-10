@@ -3,12 +3,12 @@ local modenames = {}
 
 local states = {}
 local function state(pre)
-    return states[pre][modenames[states[pre].mode]]
+    return states[pre][states[pre].mode]
 end
 
 local modes = {}
 local function mode(pre)
-    return modes[modenames[math.floor(states[pre].mode)]]
+    return modes[math.floor(states[pre].mode)]
 end
 
 local scale_names = {}
@@ -16,20 +16,20 @@ local scale_names = {}
 local function init_state()
     for i = 1, presets do
         states[i] = {
-            mode = 1, --west
+            mode = 1, --12tet
             tonic = 1, --C
         }
-        for k,_ in pairs(modes) do
-            states[i][k] = {
+        for ii,vv in pairs(modes) do
+            states[i][ii] = {
                 scale = 1,
                 tuning = {},
                 toggles = {}
             }
-            for ii,vv in ipairs(modes[k].scales) do
-                states[i][k].tuning[ii] = 1
-                states[i][k].toggles[ii] = {}
-                for iii, vvv in ipairs(modes[k].scales[ii].iv) do
-                    states[i][k].toggles[ii][iii] = 1
+            for iii,vvv in ipairs(modes[ii].scales) do
+                states[i][ii].tuning[iii] = 1
+                states[i][ii].toggles[iii] = {}
+                for iiii, vvvv in ipairs(modes[ii].scales[iii].iv) do
+                    states[i][ii].toggles[iii][iiii] = 1
                 end
             end
         end
@@ -71,7 +71,7 @@ local iv_names = {
     "maj 6ths", "min 7ths", "maj 7ths",
 }
 
--- a ^ for half flat/sharp
+-- ^ for half flat/sharp
 local note_names = {
     [1] = 'A', [1.5] = 'A^#', 
     [2] = 'A#', [2.5] = 'B^b', 
@@ -145,8 +145,9 @@ tune.hz = function(row, column, trans, toct, pre)
 
     return (
         2^(tonic(pre)/(mode(pre).tones or 12)) * 2^oct 
-        * ((mode(pre).temperment == 'just') 
-            and (iv[deg])
+        * (
+            (mode(pre).temperment == 'just') 
+            and (mode(pre).ratios[iv[deg] + 1])
             or (2^(iv[deg]/mode(pre).tones))
         )
     )
@@ -162,14 +163,12 @@ tune.setup = function(arg)
     presets = arg.presets or presets
     modes = arg.scales
 
-    modenames = { 'west', 'just' }
-    for k,_ in pairs(modes) do 
-        if not tab.contains(modenames, k) then table.insert(modenames, k) end
-    end
-    for k,v in pairs(modes) do
-        scale_names[k] = {}
-        for i, vv in ipairs(v.scales) do
-            scale_names[k][i] = vv.name
+    for i,v in pairs(modes) do 
+        modenames[i] = v.name
+        
+        scale_names[i] = {}
+        for ii, vv in ipairs(v.scales) do
+            scale_names[i][ii] = vv.name
         end
     end
 
@@ -213,35 +212,27 @@ local tune_ = function(o)
                             y = function() return top + kb.pos[ii].y - 1 end,
                             lvl = { 8, 15 },
                             enabled = function()
-                                local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
-                                local map = ji and mode(i).scales[scl].map
                                 local iv = (ii-1-tonic(i))%12
-                                local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+                                local deg = tab.key(ivs, iv)
 
                                 local is_interval = tab.contains(ivs, iv)
-                                if ji then is_interval = tab.contains(map, iv) end
 
                                 return is_interval
                             end,
                             value = function() 
-                                local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
-                                local map = ji and mode(i).scales[scl].map
-                                local iv = (ii-1-tonic(i))%12
-                                local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+                                local deg = tab.key(ivs, iv)
 
                                 return deg and state(i).toggles[scl][deg] or 0
                             end,
                             action = function(s, v)
-                                local ji = mode(i).temperment == 'just'
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
-                                local map = ji and mode(i).scales[scl].map
                                 local iv = (ii-1-tonic(i))%12
-                                local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+                                local deg = tab.key(ivs, iv)
 
                                 if deg then state(i).toggles[scl][deg] = v end
                                 redraw()
@@ -289,29 +280,24 @@ local tune_ = function(o)
                         x = xx, y = yy, 
                         padding = 1.5,
                         lvl = function()
-                            local ji = mode(i).temperment == 'just'
                             local scl = state(i).scale
                             local ivs = mode(i).scales[scl].iv
-                            local map = ji and mode(i).scales[scl].map
                             local iv = (ii-1-tonic(i))%12
-                            local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+                            local deg = tab.key(ivs, iv)
 
                             local is_interval = tab.contains(ivs, iv)
-                            if ji then is_interval = tab.contains(map, iv) end
                             local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
                             local is_tonic = iv==0
 
                             return is_tonic and 0 or (is_interval and is_enabled) and 15  or 2
                         end,
                         fill = function()
-                            local ji = mode(i).temperment == 'just'
                             local scl = state(i).scale
                             local ivs = mode(i).scales[scl].iv
-                            local map = ji and mode(i).scales[scl].map
                             local iv = (ii-1-tonic(i))%12
-                            local deg = ji and tab.key(map, iv) or tab.key(ivs, iv)
+                            local deg = tab.key(ivs, iv)
 
-                            local is_interval = ji and tab.contains(map, iv) or tab.contains(ivs, iv)
+                            local is_interval = tab.contains(ivs, iv)
                             local is_enabled = deg and (state(i).toggles[scl][deg] == 1)
                             local is_tonic = iv==0
 
@@ -321,13 +307,11 @@ local tune_ = function(o)
                             local ji = mode(i).temperment == 'just'
                             local scl = state(i).scale
                             local ivs = mode(i).scales[scl].iv
-                            local map = ji and mode(i).scales[scl].map
-                            local str = ji and mode(i).scales[scl].string
                             local iv = (ii-1-tonic(i))%12
-                            local deg = ji and tab.key(map, iv)
 
+                            --TODO: stringify ratio
                             return ji and (
-                                tab.contains(map, iv) and str[deg] or '.'
+                                '.'
                             ) or (
                                 tab.contains(ivs, iv)
                                 and note_names[(iv+tonic(i))%12+1] or '.'
@@ -336,9 +320,13 @@ local tune_ = function(o)
                     }
                 end)
             },
-            mode = _txt.enc.option {
-                x = x[1], y = y[2], n = 2, line_wrap = 2,
-                options = modenames,
+            mode = _txt.enc.number {
+                x = x[1], y = y[2], n = 2, wrap = true,
+                min = 1, step = 1, inc = 1, max = #modenames, flow = 'y',
+                label = 'tuning',
+                formatter = function(s, v)
+                    return modenames[states[i].mode]
+                end,
                 value = function() return states[i].mode end,
                 action = function(s, v) 
                     states[i].mode = v 
@@ -348,10 +336,10 @@ local tune_ = function(o)
             scale = _txt.enc.number {
                 x = x[1], y = y[1], n = 1, wrap = true,
                 min = 1, step = 1, inc = 1, max = function() 
-                    return #scale_names[modenames[states[i].mode]] 
+                    return #scale_names[states[i].mode]
                 end,
                 formatter = function(s, v)
-                    return scale_names[modenames[states[i].mode]][v]
+                    return scale_names[states[i].mode][v]
                 end,
                 value = function()
                     return state(i).scale
@@ -364,6 +352,7 @@ local tune_ = function(o)
             tuning = _txt.enc.number {
                 x = x[2], y = y[2], n = 3, flow = 'y',
                 min = 1, max = 12, step = 1, inc = 1,
+                label = 'rows',
                 value = function()
                     return state(i).tuning[state(i).scale]
                 end,
@@ -372,19 +361,9 @@ local tune_ = function(o)
                     grid_redraw()
                 end,
                 formatter = function(s, v)
-                    local ji = mode(i).temperment == 'just'
                     local deg
-
-                    if ji then
-                        local scl = state(i).scale
-                        local map = mode(i).scales[scl].map
-                        local ivs = mode(i).scales[scl].iv
-                        local iv = intervals(i)
-                        deg = map[tab.key(ivs, iv[(v-1)%#iv+1])]
-                    else
-                        local iv = intervals(i)
-                        deg = iv[(v-1)%#iv+1]
-                    end
+                    local iv = intervals(i)
+                    local deg = iv[(v-1)%#iv+1]
 
                     return iv_names[deg+1]
                 end
