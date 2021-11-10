@@ -201,6 +201,25 @@ local tune_ = function(o)
         y = { top, bottom - mul.y*1/2, [1.5] = 20 }
     end
 
+    -- https://stackoverflow.com/questions/43565484/how-do-you-take-a-decimal-to-a-fraction-in-lua-with-no-added-libraries
+    local function to_frac(num)
+        local W = math.floor(num)
+        local F = num - W
+        local pn, n, N = 0, 1
+        local pd, d, D = 1, 0
+        local x, err, q, Q
+        repeat
+            x = x and 1 / (x - q) or F
+            q, Q = math.floor(x), math.floor(x + 0.5)
+            pn, n, N = n, q*n + pn, Q*n + pn
+            pd, d, D = d, q*d + pd, Q*d + pd
+            err = F - N/D
+       until math.abs(err) < 1e-15
+
+       return N + D*W, D, err
+    end
+
+
     return nest_(presets):each(function(i) 
         return nest_ {
             grid = nest_ {
@@ -224,6 +243,7 @@ local tune_ = function(o)
                             value = function() 
                                 local scl = state(i).scale
                                 local ivs = mode(i).scales[scl].iv
+                                local iv = (ii-1-tonic(i))%12
                                 local deg = tab.key(ivs, iv)
 
                                 return deg and state(i).toggles[scl][deg] or 0
@@ -254,19 +274,19 @@ local tune_ = function(o)
                         end
                     }
                 end),
-                [100] = nest_(12):each(function(ii) 
-                    local pos = kb.pos[ii]
-                    local lvl = 4
+                -- [100] = nest_(12):each(function(ii) 
+                --     local pos = kb.pos[ii]
+                --     local lvl = 4
 
-                    return nest_ {
-                        _grid.fill {
-                            x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
-                        },
-                        _grid.fill {
-                            x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
-                        }
-                    }
-                end)
+                --     return nest_ {
+                --         _grid.fill {
+                --             x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
+                --         },
+                --         _grid.fill {
+                --             x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
+                --         }
+                --     }
+                -- end)
             },
             screen = nest_ {
                 toggles = nest_(24):each(function(ii2)
@@ -279,6 +299,7 @@ local tune_ = function(o)
                     return _txt.label {
                         x = xx, y = yy, 
                         padding = 1.5,
+                        font_face = 2,
                         lvl = function()
                             local scl = state(i).scale
                             local ivs = mode(i).scales[scl].iv
@@ -308,13 +329,21 @@ local tune_ = function(o)
                             local scl = state(i).scale
                             local ivs = mode(i).scales[scl].iv
                             local iv = (ii-1-tonic(i))%12
+                            local st = (iv+tonic(i))%12+1
 
                             --TODO: stringify ratio
-                            return ji and (
-                                '.'
-                            ) or (
+                            return (
                                 tab.contains(ivs, iv)
-                                and note_names[(iv+tonic(i))%12+1] or '.'
+                                and (  
+                                    ji and (
+                                        string.format(
+                                            "%d/%d",
+                                            to_frac(mode(i).ratios[iv+1])
+                                        )
+                                    ) or (
+                                        note_names[st]
+                                    )
+                                ) or '.'
                             )
                         end
                     }
