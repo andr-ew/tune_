@@ -274,19 +274,19 @@ local tune_ = function(o)
                         end
                     }
                 end),
-                -- [100] = nest_(12):each(function(ii) 
-                --     local pos = kb.pos[ii]
-                --     local lvl = 4
+                [100] = nest_(12):each(function(ii) 
+                    local pos = kb.pos[ii]
+                    local lvl = 4
 
-                --     return nest_ {
-                --         _grid.fill {
-                --             x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
-                --         },
-                --         _grid.fill {
-                --             x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
-                --         }
-                --     }
-                -- end)
+                    return nest_ {
+                        _grid.fill {
+                            x = left + pos.x - 1, y = top + pos.y - 1, lvl = lvl, v = 1,
+                        },
+                        _grid.fill {
+                            x = left + pos.x - 1, y = top + 3 + pos.y - 1, lvl = lvl, v = 1,
+                        }
+                    }
+                end)
             },
             screen = nest_ {
                 toggles = nest_(24):each(function(ii2)
