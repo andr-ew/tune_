@@ -134,7 +134,7 @@ tune.degoct = function(row, column, pre, trans, toct)
     return deg, oct
 end
 
-tune.is_tonic = function(row, column, pre, trans)
+tune.is_tonic = function(pre, row, column, trans)
     return tune.degoct(row, column, pre, trans) == 1
 end
 
