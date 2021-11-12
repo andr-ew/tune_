@@ -38,7 +38,7 @@ n = nest_ {
     keyboard = _grid.momentary {
         x = { 1, 8 }, y = { 2, 8 },
         lvl = function(s, x, y)
-            return tune.is_tonic(x, y, params:get('scale_preset'), params:get('transpose')) and { 4, 15 } or { 0, 15 }
+            return tune.is_tonic(params:get('scale_preset'), x, y, params:get('transpose')) and { 4, 15 } or { 0, 15 }
         end,
         action = function(s, v, t, d, add, rem)
             local k = add or rem
