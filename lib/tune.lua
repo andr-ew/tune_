@@ -139,7 +139,7 @@ tune.is_tonic = function(row, column, pre, trans)
 end
 
 --number to be multiplied by center freq in hz
-tune.hz = function(row, column, trans, toct, pre)
+tune.hz = function(pre, row, column, trans, toct)
     local iv = intervals(pre)
     local deg, oct = tune.degoct(row, column, pre, trans, toct)
 

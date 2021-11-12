@@ -46,8 +46,8 @@ n = nest_ {
 
             local trans, oct, pre = params:get('transpose'), params:get('octave'), params:get('scale_preset')
 
-            local hz = 440 * tune.hz(k.x, k.y, trans, oct, pre)
-            local midi = tune.midi(k.x, k.y, trans, oct, pre)
+            local hz = 440 * tune.hz(pre, k.x, k.y, trans, oct)
+            local midi = tune.midi(pre, k.x, k.y, trans, oct)
 
             if add then
                 engine.start(id, hz)
