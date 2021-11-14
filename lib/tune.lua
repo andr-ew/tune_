@@ -274,7 +274,7 @@ local tune_ = function(o)
                         end
                     }
                 end),
-                [100] = nest_(12):each(function(ii) 
+                [0] = nest_(12):each(function(ii) 
                     local pos = kb.pos[ii]
                     local lvl = 4
 
